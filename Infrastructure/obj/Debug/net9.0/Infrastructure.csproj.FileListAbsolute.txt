@@ -13,3 +13,4 @@ C:\Users\user\OneDrive\Desktop\NexaOrderBot\Infrastructure\obj\Debug\net9.0\Infr
 C:\Users\user\OneDrive\Desktop\NexaOrderBot\Infrastructure\obj\Debug\net9.0\refint\Infrastructure.dll
 C:\Users\user\OneDrive\Desktop\NexaOrderBot\Infrastructure\obj\Debug\net9.0\Infrastructure.pdb
 C:\Users\user\OneDrive\Desktop\NexaOrderBot\Infrastructure\obj\Debug\net9.0\ref\Infrastructure.dll
+C:\Users\user\OneDrive\Desktop\NexaOrderBot\Infrastructure\obj\Debug\net9.0\Infrastructure.sourcelink.json
