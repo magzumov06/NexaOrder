@@ -4,7 +4,6 @@ using Microsoft.AspNetCore.Mvc;
 using Telegram.Bot;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
-using Telegram.Bot.Types.ReplyMarkups;
 
 namespace TelegramBot.Controllers;
 
@@ -19,27 +18,27 @@ public class TelegramController(
     {
         if (update == null)
             return Ok();
-        
-        if (update.Type == UpdateType.Message && update.Message!.Text != null)
+
+      
+
+        if (update.Type == UpdateType.Message && update.Message?.Text != null)
         {
-            var chatId = (int)update.Message.Chat.Id;
+            var chatId = update.Message.Chat.Id;
             var text = update.Message.Text;
 
-        
             if (text.StartsWith("/order"))
             {
-                await orderService.Create(chatId);
+                await orderService.Create((int)chatId);
 
                 await bot.SendMessage(
-                    chatId,
-                    "✅ Order created successfully!"
+                    chatId: chatId,
+                    text: "✅ Order created successfully!"
                 );
             }
 
-           
             if (text == "/myorders")
             {
-                var orders = await orderService.GetUserOrders(chatId);
+                var orders = await orderService.GetUserOrders((int)chatId);
 
                 var message = "📦 Your Orders:\n\n";
 
@@ -48,30 +47,37 @@ public class TelegramController(
                     message += $"ID: {o.Id} | Status: {o.Status}\n";
                 }
 
-                await bot.SendMessage(chatId, message);
+                if (string.IsNullOrEmpty(message))
+                    message = "No orders yet.";
+
+                await bot.SendMessage(
+                    chatId: chatId,
+                    text: message
+                );
             }
         }
 
-       
-        if (update.Type == UpdateType.CallbackQuery)
+
+        if (update.Type == UpdateType.CallbackQuery && update.CallbackQuery != null)
         {
-            var callback = update.CallbackQuery!;
+            var callback = update.CallbackQuery;
             var data = callback.Data;
 
-            if (data!.StartsWith("Cancelled"))
+            if (!string.IsNullOrEmpty(data))
             {
-                var id = int.Parse(data.Split("_")[1]);
+                if (data.StartsWith("Cancelled"))
+                {
+                    var id = int.Parse(data.Split("_")[1]);
 
-                await orderService.UpdateStatus(id, OrderStatus.Cancelled);
+                    await orderService.UpdateStatus(id, OrderStatus.Cancelled);
+                }
 
-                await bot.AnswerCallbackQuery(callback.Id);
-            }
+                if (data.StartsWith("Processing"))
+                {
+                    var id = int.Parse(data.Split("_")[1]);
 
-            if (data.StartsWith("Processing"))
-            {
-                var id = int.Parse(data.Split("_")[1]);
-
-                await orderService.UpdateStatus(id, OrderStatus.Processing);
+                    await orderService.UpdateStatus(id, OrderStatus.Processing);
+                }
 
                 await bot.AnswerCallbackQuery(callback.Id);
             }
