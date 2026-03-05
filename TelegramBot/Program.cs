@@ -12,10 +12,9 @@ builder.Services.AddDbContext<DataContext>(opt =>
     opt.UseNpgsql(builder.Configuration
         .GetConnectionString("DefaultConnection")));
 
-builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<IProductService, ProductService>();
 builder.Services.AddScoped<IOrderService, OrderService>();
-builder.Services.AddScoped<IUserService1, UserService1>();
-builder.Services.AddScoped<IOrderService1, OrderService1>();
+
 
 builder.Services.AddSingleton<ITelegramBotClient>(sp =>
 {
