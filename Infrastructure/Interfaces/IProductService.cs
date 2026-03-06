@@ -4,7 +4,7 @@ namespace Infrastructure.Interfaces;
 
 public interface IProductService
 {
-    Task CreateProductAsync(CreateProductDto productDto);
+    Task<string> CreateProductAsync(CreateProductDto productDto);
     Task<bool> UpdateProductAsync(UpdateProductDto productDto);
     Task<bool> DeleteProductAsync(int id);
     Task<GetProductDto?> GetProductAsync(int id);

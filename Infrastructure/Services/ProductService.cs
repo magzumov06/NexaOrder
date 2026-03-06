@@ -8,7 +8,7 @@ namespace Infrastructure.Services;
 
 public class ProductService(DataContext context) : IProductService
 {
-    public async Task CreateProductAsync(CreateProductDto productDto)
+    public async Task<string> CreateProductAsync(CreateProductDto productDto)
     {
         try
         {
@@ -22,6 +22,7 @@ public class ProductService(DataContext context) : IProductService
 
             await context.Products.AddAsync(newProduct);
             await context.SaveChangesAsync();
+            return "Product created";
         }
         catch (Exception ex)
         {

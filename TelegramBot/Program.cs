@@ -2,9 +2,7 @@ using Infrastructure.Data;
 using Infrastructure.Interfaces;
 using Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Options;
 using Telegram.Bot;
-using TelegramBot.Controllers;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -14,7 +12,7 @@ builder.Services.AddDbContext<DataContext>(opt =>
 
 builder.Services.AddScoped<IProductService, ProductService>();
 builder.Services.AddScoped<IOrderService, OrderService>();
-
+builder.Services.AddScoped<ITelegramService, TelegramService>();
 
 builder.Services.AddSingleton<ITelegramBotClient>(sp =>
 {
