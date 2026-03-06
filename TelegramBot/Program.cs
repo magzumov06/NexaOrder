@@ -13,6 +13,8 @@ builder.Services.AddDbContext<DataContext>(opt =>
 builder.Services.AddScoped<IProductService, ProductService>();
 builder.Services.AddScoped<IOrderService, OrderService>();
 builder.Services.AddScoped<ITelegramService, TelegramService>();
+builder.Services.AddHttpClient();
+
 
 builder.Services.AddSingleton<ITelegramBotClient>(sp =>
 {

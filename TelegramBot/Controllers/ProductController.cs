@@ -10,7 +10,7 @@ namespace TelegramBot.Controllers;
 public class ProductController(IProductService productService) : ControllerBase
 {
     [HttpPost]
-    public async Task<IActionResult> Create([FromForm] CreateProductDto dto)
+    public async Task<IActionResult> Create([FromBody] CreateProductDto dto)
     {
         var res = await productService.CreateProductAsync(dto);
         return Ok(res);
@@ -23,7 +23,7 @@ public class ProductController(IProductService productService) : ControllerBase
         return Ok(res);
     }
 
-    [HttpDelete]
+    [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(int id)
     {
         var res = await productService.DeleteProductAsync(id);
