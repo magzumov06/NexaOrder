@@ -1,10 +1,13 @@
-﻿using Domain.DTO.Order;
+﻿using System.Net.Http.Json;
+using Domain.DTO.Order;
 using Domain.Entities;
 using Infrastructure.Interfaces;
 using Domain.Enums;
 using Telegram.Bot;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.ReplyMarkups;
+using System.Text;
+using System.Text.Json;
 
 namespace Infrastructure.Services;
 
@@ -45,6 +48,7 @@ public class TelegramService(
         if (!UserState.TryGetValue(chatId, out var state))
             return;
 
+        // CREATE ORDER
         if (state == "create_order")
         {
             var parts = text.Split(" ");
@@ -53,10 +57,7 @@ public class TelegramService(
                 !int.TryParse(parts[0], out int productId) ||
                 !int.TryParse(parts[1], out int quantity))
             {
-                await bot.SendMessage(
-                    chatId,
-                    "❌ Format: ProductId Quantity\nExample: 1 2"
-                );
+                await bot.SendMessage(chatId, "❌ Format: ProductId Quantity\nExample: 1 2");
                 return;
             }
 
@@ -72,13 +73,37 @@ public class TelegramService(
 
             UserState[chatId] = "main";
 
-            await bot.SendMessage(
-                chatId,
-                result,
-                replyMarkup: GetMainKeyboard()
-            );
+            await bot.SendMessage(chatId, result, replyMarkup: GetMainKeyboard());
         }
 
+        // CREATE PRODUCT
+        else if (state == "create_product")
+        {
+            var parts = text.Split(" ");
+
+            if (parts.Length != 3)
+            {
+                await bot.SendMessage(chatId, "❌ Format:\nName Price Quantity\nExample:\nApple 10 5");
+                return;
+            }
+
+            var product = new
+            {
+                Name = parts[0],
+                Price = decimal.Parse(parts[1]),
+                Quantity = int.Parse(parts[2])
+            };
+
+            await httpClient.PostAsJsonAsync(
+                "https://kenny-sunnier-russel.ngrok-free.dev/api/products",
+                product);
+
+            UserState[chatId] = "main";
+
+            await bot.SendMessage(chatId, "✅ Product Created");
+        }
+
+        // DELETE PRODUCT
         else if (state == "waiting_delete_product")
         {
             if (!int.TryParse(text, out var productId))
@@ -88,14 +113,14 @@ public class TelegramService(
             }
 
             await httpClient.DeleteAsync(
-                $"https://kenny-sunnier-russel.ngrok-free.dev/api/products?id={productId}"
-            );
+                $"https://kenny-sunnier-russel.ngrok-free.dev/api/products/{productId}");
 
             UserState[chatId] = "main";
 
             await bot.SendMessage(chatId, "🗑 Product Deleted");
         }
 
+        // GET PRODUCT
         else if (state == "waiting_get_product")
         {
             if (!int.TryParse(text, out var productId))
@@ -105,8 +130,7 @@ public class TelegramService(
             }
 
             var response = await httpClient.GetAsync(
-                $"https://kenny-sunnier-russel.ngrok-free.dev/api/products/{productId}"
-            );
+                $"https://kenny-sunnier-russel.ngrok-free.dev/api/products/{productId}");
 
             var json = await response.Content.ReadAsStringAsync();
 
@@ -115,6 +139,26 @@ public class TelegramService(
             UserState[chatId] = "main";
         }
 
+        // GET ORDER
+        else if (state == "waiting_get_order")
+        {
+            if (!int.TryParse(text, out var orderId))
+            {
+                await bot.SendMessage(chatId, "❌ Invalid Order ID");
+                return;
+            }
+
+            var response = await httpClient.GetAsync(
+                $"https://kenny-sunnier-russel.ngrok-free.dev/api/orders/{orderId}");
+
+            var json = await response.Content.ReadAsStringAsync();
+
+            await bot.SendMessage(chatId, $"📦 Order:\n{json}");
+
+            UserState[chatId] = "main";
+        }
+
+        // DELETE ORDER
         else if (state == "waiting_delete_order")
         {
             if (!int.TryParse(text, out var orderId))
@@ -124,8 +168,7 @@ public class TelegramService(
             }
 
             await httpClient.DeleteAsync(
-                $"https://kenny-sunnier-russel.ngrok-free.dev/api/orders/{orderId}"
-            );
+                $"https://kenny-sunnier-russel.ngrok-free.dev/api/orders/{orderId}");
 
             UserState[chatId] = "main";
 
@@ -147,81 +190,53 @@ public class TelegramService(
 
                 UserState[chatId] = "create_order";
 
-                await bot.SendMessage(
-                    chatId,
-                    "📦 Send ProductId and Quantity\nFormat:\n1 2",
-                    replyMarkup: GetBackKeyboard()
-                );
-                break;
-
-            case "my_orders":
-
-                var orders = await orderService.GetOrderAsync();
-
-                if (!orders.Any())
-                {
-                    await bot.SendMessage(chatId, "❌ No orders");
-                    break;
-                }
-
-                var text = "📦 Orders:\n\n";
-
-                foreach (var o in orders)
-                {
-                    text += $"Order #{o.Id}\n";
-                    text += $"Product: {o.ProductId}\n\n";
-                }
-
-                await bot.SendMessage(chatId, text);
+                await bot.SendMessage(chatId,
+                    "📦 Send ProductId and Quantity\nFormat:\n1 2");
                 break;
 
             case "products":
 
                 var products = await GetProductsFromApi();
 
-                if (!products.Any())
-                {
-                    await bot.SendMessage(chatId, "❌ No products found");
-                    break;
-                }
-
-                var productText = "🛍 Product List:\n\n";
+                var text = new StringBuilder("🛍 Products:\n\n");
 
                 foreach (var p in products)
                 {
-                    productText += $"📌 Id: {p.Id}\n";
-                    productText += $"📦 {p.Name}\n";
-                    productText += $"💰 {p.Price}\n\n";
+                    text.AppendLine($"Id: {p.Id}");
+                    text.AppendLine($"Name: {p.Name}");
+                    text.AppendLine($"Price: {p.Price}\n");
                 }
 
-                await bot.SendMessage(chatId, productText);
+                await bot.SendMessage(chatId, text.ToString());
                 break;
 
             case "admin_panel":
 
-                await bot.SendMessage(
-                    chatId,
+                await bot.SendMessage(chatId,
                     "👑 Admin Panel",
-                    replyMarkup: GetAdminKeyboard()
-                );
+                    replyMarkup: GetAdminKeyboard());
                 break;
 
             case "admin_products":
 
-                await bot.SendMessage(
-                    chatId,
+                await bot.SendMessage(chatId,
                     "📦 Product Management",
-                    replyMarkup: GetProductAdminKeyboard()
-                );
+                    replyMarkup: GetProductAdminKeyboard());
                 break;
 
             case "admin_orders":
 
-                await bot.SendMessage(
-                    chatId,
+                await bot.SendMessage(chatId,
                     "📑 Order Management",
-                    replyMarkup: GetOrderAdminKeyboard()
-                );
+                    replyMarkup: GetOrderAdminKeyboard());
+                break;
+
+            case "create_product":
+
+                UserState[chatId] = "create_product";
+
+                await bot.SendMessage(chatId,
+                    "➕ Send Product:\nName Price Quantity\nExample:\nApple 10 5");
                 break;
 
             case "delete_product":
@@ -238,6 +253,13 @@ public class TelegramService(
                 await bot.SendMessage(chatId, "🔎 Send Product ID:");
                 break;
 
+            case "get_order":
+
+                UserState[chatId] = "waiting_get_order";
+
+                await bot.SendMessage(chatId, "🔎 Send Order ID:");
+                break;
+
             case "delete_order":
 
                 UserState[chatId] = "waiting_delete_order";
@@ -249,11 +271,9 @@ public class TelegramService(
 
                 UserState[chatId] = "main";
 
-                await bot.SendMessage(
-                    chatId,
+                await bot.SendMessage(chatId,
                     "🔙 Main Menu",
-                    replyMarkup: GetMainKeyboard()
-                );
+                    replyMarkup: GetMainKeyboard());
                 break;
         }
 
@@ -263,16 +283,14 @@ public class TelegramService(
     private async Task<List<Product>> GetProductsFromApi()
     {
         var response = await httpClient.GetAsync(
-            "https://kenny-sunnier-russel.ngrok-free.dev/api/products"
-        );
+            "https://kenny-sunnier-russel.ngrok-free.dev/api/products");
 
         if (!response.IsSuccessStatusCode)
             return new List<Product>();
 
         var json = await response.Content.ReadAsStringAsync();
 
-        return System.Text.Json.JsonSerializer
-                   .Deserialize<List<Product>>(json)
+        return JsonSerializer.Deserialize<List<Product>>(json)
                ?? new List<Product>();
     }
 
@@ -283,10 +301,6 @@ public class TelegramService(
             new[]
             {
                 InlineKeyboardButton.WithCallbackData("🛒 Create Order", "create_order")
-            },
-            new[]
-            {
-                InlineKeyboardButton.WithCallbackData("📦 My Orders", "my_orders")
             },
             new[]
             {
@@ -328,10 +342,6 @@ public class TelegramService(
             },
             new[]
             {
-                InlineKeyboardButton.WithCallbackData("✏ Update", "update_product")
-            },
-            new[]
-            {
                 InlineKeyboardButton.WithCallbackData("🔎 Get By Id", "get_product")
             },
             new[]
@@ -362,12 +372,5 @@ public class TelegramService(
                 InlineKeyboardButton.WithCallbackData("🔙 Back", "admin_panel")
             }
         });
-    }
-
-    private InlineKeyboardMarkup GetBackKeyboard()
-    {
-        return new InlineKeyboardMarkup(
-            InlineKeyboardButton.WithCallbackData("🔙 Go Back", "go_back")
-        );
     }
 }
