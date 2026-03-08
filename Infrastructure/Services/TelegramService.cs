@@ -1,13 +1,14 @@
 ﻿using System.Net.Http.Json;
-using Domain.DTO.Order;
-using Domain.Entities;
-using Infrastructure.Interfaces;
-using Domain.Enums;
-using Telegram.Bot;
-using Telegram.Bot.Types;
-using Telegram.Bot.Types.ReplyMarkups;
 using System.Text;
 using System.Text.Json;
+using Domain.DTO.Order;
+using Domain.DTO.User;
+using Domain.Entities;
+using Domain.Enums;
+using Infrastructure.Buttons;
+using Infrastructure.Interfaces;
+using Telegram.Bot;
+using Telegram.Bot.Types;
 
 namespace Infrastructure.Services;
 
@@ -18,6 +19,7 @@ public class TelegramService(
     : ITelegramService
 {
     private static readonly Dictionary<long, string> UserState = new();
+    private static readonly Dictionary<long, CreateUserDto> TempUsers = new();
 
     public async Task HandleUpdateAsync(Update update)
     {
@@ -35,145 +37,231 @@ public class TelegramService(
 
         if (text == "/start")
         {
-            UserState[chatId] = "main";
+            await StartRegistration(chatId);
+            return;
+        }
 
-            await bot.SendMessage(
-                chatId,
-                "👋 Welcome to NexaOrderBot",
-                replyMarkup: GetMainKeyboard()
-            );
+        if (message.Contact != null)
+        {
+            await HandlePhone(chatId, message.Contact.PhoneNumber);
             return;
         }
 
         if (!UserState.TryGetValue(chatId, out var state))
             return;
 
-        // CREATE ORDER
-        if (state == "create_order")
+        switch (state)
         {
-            var parts = text.Split(" ");
+            case "waiting_username":
+                await HandleUsername(chatId, text);
+                break;
 
-            if (parts.Length != 2 ||
-                !int.TryParse(parts[0], out int productId) ||
-                !int.TryParse(parts[1], out int quantity))
+            case "waiting_address":
+                await HandleAddress(chatId, text);
+                break;
+
+            case "create_order":
+                await HandleCreateOrder(chatId, text);
+                break;
+
+            case "create_product":
+                await HandleCreateProduct(chatId, text);
+                break;
+
+            case "waiting_delete_product":
+                await DeleteProduct(chatId, text);
+                break;
+
+            case "waiting_get_product":
+                await GetProduct(chatId, text);
+                break;
+
+            case "waiting_delete_order":
+                await DeleteOrder(chatId, text);
+                break;
+
+            case "waiting_get_order":
+                await GetOrder(chatId, text);
+                break;
+        }
+    }
+
+    private async Task StartRegistration(long chatId)
+    {
+        var keyboard = new Telegram.Bot.Types.ReplyMarkups.ReplyKeyboardMarkup(
+            new[]
             {
-                await bot.SendMessage(chatId, "❌ Format: ProductId Quantity\nExample: 1 2");
-                return;
-            }
+                new Telegram.Bot.Types.ReplyMarkups.KeyboardButton[]
+                {
+                    new("📱 Send Phone")
+                    {
+                        RequestContact = true
+                    }
+                }
+            })
+        {
+            ResizeKeyboard = true
+        };
 
-            var dto = new CreateOrderDto
-            {
-                ProductId = productId,
-                Quantity = quantity,
-                Address = "Telegram Order",
-                PaymentMethod = PaymentMethod.Cash
-            };
+        UserState[chatId] = "waiting_phone";
 
-            var result = await orderService.CreateOrderAsync(dto);
+        await bot.SendMessage(chatId,
+            "Барои сабти ном рақами телефони худро фиристед",
+            replyMarkup: keyboard);
+    }
 
-            UserState[chatId] = "main";
+    private async Task HandlePhone(long chatId, string phone)
+    {
+        TempUsers[chatId] = new CreateUserDto
+        {
+            Phone = phone,
+            Username = null,
+            Address = null
+        };
 
-            await bot.SendMessage(chatId, result, replyMarkup: GetMainKeyboard());
+        UserState[chatId] = "waiting_username";
+
+        await bot.SendMessage(chatId,
+            "Ташаккур! Акнун номатонро ворид кунед.");
+    }
+
+    private async Task HandleUsername(long chatId, string username)
+    {
+        TempUsers[chatId].Username = username;
+
+        UserState[chatId] = "waiting_address";
+
+        await bot.SendMessage(chatId,
+            "Лутфан адрес / шаҳрро ворид кунед.");
+    }
+
+    private async Task HandleAddress(long chatId, string address)
+    {
+        TempUsers[chatId].Address = address;
+        TempUsers[chatId].Age = 18;
+
+        var dto = TempUsers[chatId];
+
+        await httpClient.PostAsJsonAsync(
+            "https://kenny-sunnier-russel.ngrok-free.dev/api/users",
+            dto);
+
+        TempUsers.Remove(chatId);
+
+        UserState[chatId] = "main";
+
+        await bot.SendMessage(chatId,
+            "✅ Сабти ном анҷом ёфт!",
+            replyMarkup: MainButtons.GetMainKeyboard());
+    }
+
+    private async Task HandleCreateOrder(long chatId, string text)
+    {
+        var parts = text.Split(" ");
+
+        if (parts.Length != 2)
+        {
+            await bot.SendMessage(chatId,
+                "❌ Format: ProductId Quantity\nExample: 1 2");
+            return;
         }
 
-        // CREATE PRODUCT
-        else if (state == "create_product")
+        var dto = new CreateOrderDto
         {
-            var parts = text.Split(" ");
+            ProductId = int.Parse(parts[0]),
+            Quantity = int.Parse(parts[1]),
+            Address = "Telegram Order",
+            PaymentMethod = PaymentMethod.Cash
+        };
 
-            if (parts.Length != 3)
-            {
-                await bot.SendMessage(chatId, "❌ Format:\nName Price Quantity\nExample:\nApple 10 5");
-                return;
-            }
+        var response = await httpClient.PostAsJsonAsync(
+            "https://kenny-sunnier-russel.ngrok-free.dev/api/orders",
+            dto);
 
-            var product = new
-            {
-                Name = parts[0],
-                Price = decimal.Parse(parts[1]),
-                Quantity = int.Parse(parts[2])
-            };
+        var result = await response.Content.ReadAsStringAsync();
 
-            await httpClient.PostAsJsonAsync(
-                "https://kenny-sunnier-russel.ngrok-free.dev/api/products",
-                product);
+        await bot.SendMessage(chatId,
+            result,
+            replyMarkup: MainButtons.GetMainKeyboard());
 
-            UserState[chatId] = "main";
+        UserState[chatId] = "main";
+    }
 
-            await bot.SendMessage(chatId, "✅ Product Created");
+    private async Task HandleCreateProduct(long chatId, string text)
+    {
+        var parts = text.Split(" ");
+
+        if (parts.Length != 3)
+        {
+            await bot.SendMessage(chatId,
+                "❌ Format: Name Price Quantity\nExample: Apple 10 5");
+            return;
         }
 
-        // DELETE PRODUCT
-        else if (state == "waiting_delete_product")
+        var product = new
         {
-            if (!int.TryParse(text, out var productId))
-            {
-                await bot.SendMessage(chatId, "❌ Invalid Product ID");
-                return;
-            }
+            Name = parts[0],
+            Price = decimal.Parse(parts[1]),
+            Quantity = int.Parse(parts[2])
+        };
 
-            await httpClient.DeleteAsync(
-                $"https://kenny-sunnier-russel.ngrok-free.dev/api/products/{productId}");
+        await httpClient.PostAsJsonAsync(
+            "https://kenny-sunnier-russel.ngrok-free.dev/api/products",
+            product);
 
-            UserState[chatId] = "main";
+        await bot.SendMessage(chatId, "✅ Product Created");
 
-            await bot.SendMessage(chatId, "🗑 Product Deleted");
+        UserState[chatId] = "main";
+    }
+
+    private async Task DeleteProduct(long chatId, string text)
+    {
+        if (!int.TryParse(text, out var id))
+        {
+            await bot.SendMessage(chatId, "❌ Invalid Product ID");
+            return;
         }
 
-        // GET PRODUCT
-        else if (state == "waiting_get_product")
-        {
-            if (!int.TryParse(text, out var productId))
-            {
-                await bot.SendMessage(chatId, "❌ Invalid ID");
-                return;
-            }
+        await httpClient.DeleteAsync(
+            $"https://kenny-sunnier-russel.ngrok-free.dev/api/products/{id}");
 
-            var response = await httpClient.GetAsync(
-                $"https://kenny-sunnier-russel.ngrok-free.dev/api/products/{productId}");
+        await bot.SendMessage(chatId, "🗑 Product Deleted");
 
-            var json = await response.Content.ReadAsStringAsync();
+        UserState[chatId] = "main";
+    }
 
-            await bot.SendMessage(chatId, $"📦 Product:\n{json}");
+    private async Task GetProduct(long chatId, string text)
+    {
+        var response = await httpClient.GetAsync(
+            $"https://kenny-sunnier-russel.ngrok-free.dev/api/products/{text}");
 
-            UserState[chatId] = "main";
-        }
+        var json = await response.Content.ReadAsStringAsync();
 
-        // GET ORDER
-        else if (state == "waiting_get_order")
-        {
-            if (!int.TryParse(text, out var orderId))
-            {
-                await bot.SendMessage(chatId, "❌ Invalid Order ID");
-                return;
-            }
+        await bot.SendMessage(chatId, json);
 
-            var response = await httpClient.GetAsync(
-                $"https://kenny-sunnier-russel.ngrok-free.dev/api/orders/{orderId}");
+        UserState[chatId] = "main";
+    }
 
-            var json = await response.Content.ReadAsStringAsync();
+    private async Task DeleteOrder(long chatId, string text)
+    {
+        await httpClient.DeleteAsync(
+            $"https://kenny-sunnier-russel.ngrok-free.dev/api/orders/{text}");
 
-            await bot.SendMessage(chatId, $"📦 Order:\n{json}");
+        await bot.SendMessage(chatId, "🗑 Order Deleted");
 
-            UserState[chatId] = "main";
-        }
+        UserState[chatId] = "main";
+    }
 
-        // DELETE ORDER
-        else if (state == "waiting_delete_order")
-        {
-            if (!int.TryParse(text, out var orderId))
-            {
-                await bot.SendMessage(chatId, "❌ Invalid Order ID");
-                return;
-            }
+    private async Task GetOrder(long chatId, string text)
+    {
+        var response = await httpClient.GetAsync(
+            $"https://kenny-sunnier-russel.ngrok-free.dev/api/orders/{text}");
 
-            await httpClient.DeleteAsync(
-                $"https://kenny-sunnier-russel.ngrok-free.dev/api/orders/{orderId}");
+        var json = await response.Content.ReadAsStringAsync();
 
-            UserState[chatId] = "main";
+        await bot.SendMessage(chatId, json);
 
-            await bot.SendMessage(chatId, "🗑 Order Deleted");
-        }
+        UserState[chatId] = "main";
     }
 
     private async Task HandleCallbackAsync(CallbackQuery callback)
@@ -182,195 +270,31 @@ public class TelegramService(
             return;
 
         var chatId = callback.Message.Chat.Id;
-        var data = callback.Data;
 
-        switch (data)
+        switch (callback.Data)
         {
             case "create_order":
-
                 UserState[chatId] = "create_order";
 
                 await bot.SendMessage(chatId,
-                    "📦 Send ProductId and Quantity\nFormat:\n1 2");
-                break;
-
-            case "products":
-
-                var products = await GetProductsFromApi();
-
-                var text = new StringBuilder("🛍 Products:\n\n");
-
-                foreach (var p in products)
-                {
-                    text.AppendLine($"Id: {p.Id}");
-                    text.AppendLine($"Name: {p.Name}");
-                    text.AppendLine($"Price: {p.Price}\n");
-                }
-
-                await bot.SendMessage(chatId, text.ToString());
+                    "📦 Send ProductId and Quantity\nExample:\n1 2");
                 break;
 
             case "admin_panel":
-
                 await bot.SendMessage(chatId,
                     "👑 Admin Panel",
-                    replyMarkup: GetAdminKeyboard());
+                    replyMarkup: AdminButtons.GetAdminKeyboard());
                 break;
 
-            case "admin_products":
-
-                await bot.SendMessage(chatId,
-                    "📦 Product Management",
-                    replyMarkup: GetProductAdminKeyboard());
-                break;
-
-            case "admin_orders":
-
-                await bot.SendMessage(chatId,
-                    "📑 Order Management",
-                    replyMarkup: GetOrderAdminKeyboard());
-                break;
-
-            case "create_product":
-
-                UserState[chatId] = "create_product";
-
-                await bot.SendMessage(chatId,
-                    "➕ Send Product:\nName Price Quantity\nExample:\nApple 10 5");
-                break;
-
-            case "delete_product":
-
-                UserState[chatId] = "waiting_delete_product";
-
-                await bot.SendMessage(chatId, "🗑 Send Product ID:");
-                break;
-
-            case "get_product":
-
-                UserState[chatId] = "waiting_get_product";
-
-                await bot.SendMessage(chatId, "🔎 Send Product ID:");
-                break;
-
-            case "get_order":
-
-                UserState[chatId] = "waiting_get_order";
-
-                await bot.SendMessage(chatId, "🔎 Send Order ID:");
-                break;
-
-            case "delete_order":
-
-                UserState[chatId] = "waiting_delete_order";
-
-                await bot.SendMessage(chatId, "🗑 Send Order ID:");
-                break;
-
-            case "go_back":
-
+            case "back":
                 UserState[chatId] = "main";
 
                 await bot.SendMessage(chatId,
-                    "🔙 Main Menu",
-                    replyMarkup: GetMainKeyboard());
+                    "Main Menu",
+                    replyMarkup: MainButtons.GetMainKeyboard());
                 break;
         }
 
         await bot.AnswerCallbackQuery(callback.Id);
-    }
-
-    private async Task<List<Product>> GetProductsFromApi()
-    {
-        var response = await httpClient.GetAsync(
-            "https://kenny-sunnier-russel.ngrok-free.dev/api/products");
-
-        if (!response.IsSuccessStatusCode)
-            return new List<Product>();
-
-        var json = await response.Content.ReadAsStringAsync();
-
-        return JsonSerializer.Deserialize<List<Product>>(json)
-               ?? new List<Product>();
-    }
-
-    private InlineKeyboardMarkup GetMainKeyboard()
-    {
-        return new InlineKeyboardMarkup(new[]
-        {
-            new[]
-            {
-                InlineKeyboardButton.WithCallbackData("🛒 Create Order", "create_order")
-            },
-            new[]
-            {
-                InlineKeyboardButton.WithCallbackData("🛍 Products", "products")
-            },
-            new[]
-            {
-                InlineKeyboardButton.WithCallbackData("👑 Admin Panel", "admin_panel")
-            }
-        });
-    }
-
-    private InlineKeyboardMarkup GetAdminKeyboard()
-    {
-        return new InlineKeyboardMarkup(new[]
-        {
-            new[]
-            {
-                InlineKeyboardButton.WithCallbackData("📦 Products", "admin_products")
-            },
-            new[]
-            {
-                InlineKeyboardButton.WithCallbackData("📑 Orders", "admin_orders")
-            },
-            new[]
-            {
-                InlineKeyboardButton.WithCallbackData("🔙 Back", "go_back")
-            }
-        });
-    }
-
-    private InlineKeyboardMarkup GetProductAdminKeyboard()
-    {
-        return new InlineKeyboardMarkup(new[]
-        {
-            new[]
-            {
-                InlineKeyboardButton.WithCallbackData("➕ Create", "create_product")
-            },
-            new[]
-            {
-                InlineKeyboardButton.WithCallbackData("🔎 Get By Id", "get_product")
-            },
-            new[]
-            {
-                InlineKeyboardButton.WithCallbackData("🗑 Delete", "delete_product")
-            },
-            new[]
-            {
-                InlineKeyboardButton.WithCallbackData("🔙 Back", "admin_panel")
-            }
-        });
-    }
-
-    private InlineKeyboardMarkup GetOrderAdminKeyboard()
-    {
-        return new InlineKeyboardMarkup(new[]
-        {
-            new[]
-            {
-                InlineKeyboardButton.WithCallbackData("🔎 Get Order By Id", "get_order")
-            },
-            new[]
-            {
-                InlineKeyboardButton.WithCallbackData("🗑 Delete Order", "delete_order")
-            },
-            new[]
-            {
-                InlineKeyboardButton.WithCallbackData("🔙 Back", "admin_panel")
-            }
-        });
     }
 }

@@ -15,11 +15,17 @@ public class UserService(DataContext context) : IUserService
             {
                 Username = createUserDto.Username,
                 Address = createUserDto.Address,
-                Age = createUserDto.Age,
-                CreatedAt = DateTime.UtcNow,
+                Age = createUserDto.Age, 
+                CreatedAt = DateTime.UtcNow
+                
             };
             await context.Users.AddAsync(newUser);
             await context.SaveChangesAsync();
+            if (newUser.Id == 1)
+            {
+                newUser.IsAdmin = true;
+                await context.SaveChangesAsync();
+            }
             return "User created";
         }
         catch (Exception e)
