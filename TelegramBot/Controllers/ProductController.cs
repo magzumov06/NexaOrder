@@ -20,6 +20,10 @@ public class ProductController(IProductService productService) : ControllerBase
     public async Task<IActionResult> Update([FromForm] UpdateProductDto dto)
     {
         var res = await productService.UpdateProductAsync(dto);
+        if (res == null)
+        {
+            return NotFound();
+        }
         return Ok(res);
     }
 
@@ -27,6 +31,10 @@ public class ProductController(IProductService productService) : ControllerBase
     public async Task<IActionResult> Delete(int id)
     {
         var res = await productService.DeleteProductAsync(id);
+        if (res == null)
+        {
+            return NotFound();
+        }
         return Ok(res);
     }
 
@@ -34,6 +42,10 @@ public class ProductController(IProductService productService) : ControllerBase
     public async Task<IActionResult> Get(int id)
     {
         var res = await productService.GetProductAsync(id);
+        if (res == null)
+        {
+            return NotFound();
+        }
         return Ok(res);
     }
 

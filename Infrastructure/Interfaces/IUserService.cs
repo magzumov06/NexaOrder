@@ -6,7 +6,7 @@ public interface IUserService
 {
     Task<string> CreateUserAsync(CreateUserDto createUserDto);
     Task<string> UpdateUserAsync(UpdateUserDto updateUserDto);
-    Task<bool> DeleteUserAsync(int id);
-    Task<GetUserDto> GetUserAsync(int id);
+    Task<string> DeleteUserAsync(int id);
+    Task<GetUserDto?> GetUserAsync(int id);
     Task<List<GetUserDto>> GetUsersAsync();
 }

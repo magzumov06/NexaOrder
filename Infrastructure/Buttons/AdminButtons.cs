@@ -54,7 +54,22 @@ public static class AdminButtons
                 InlineKeyboardButton.WithCallbackData("📑 Orders",BotCallbacks.AdminOrders )
             ],
             [
+                InlineKeyboardButton.WithCallbackData("Users", BotCallbacks.AdminUser)
+            ],
+            [
                 InlineKeyboardButton.WithCallbackData("🔙 Back", BotCallbacks.Back)
+            ]
+        ]);
+    }
+
+    public static InlineKeyboardMarkup GetUserKeyboard()
+    {
+        return new InlineKeyboardMarkup([
+            [
+                InlineKeyboardButton.WithCallbackData("GetUserById", BotCallbacks.GetUser)
+            ],
+            [
+                InlineKeyboardButton.WithCallbackData("GetUsers", BotCallbacks.GetUsers)
             ]
         ]);
     }

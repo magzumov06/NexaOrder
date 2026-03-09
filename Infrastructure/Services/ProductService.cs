@@ -10,8 +10,6 @@ public class ProductService(DataContext context) : IProductService
 {
     public async Task<string> CreateProductAsync(CreateProductDto productDto)
     {
-        try
-        {
             var newProduct = new Product()
             {
                 Name = productDto.Name,
@@ -23,17 +21,10 @@ public class ProductService(DataContext context) : IProductService
             await context.Products.AddAsync(newProduct);
             await context.SaveChangesAsync();
             return "Product created";
-        }
-        catch (Exception ex)
-        {
-            throw new Exception($"Error while creating product: {ex.Message}");
-        }
     }
 
     public async Task<bool> UpdateProductAsync(UpdateProductDto productDto)
     {
-        try
-        {
             var product = await context.Products.FirstOrDefaultAsync(x=>x.Id == productDto.Id);
             if (product == null)
             {
@@ -45,17 +36,10 @@ public class ProductService(DataContext context) : IProductService
             product.Quantity = productDto.Quantity;
             await context.SaveChangesAsync();
             return true;
-        }
-        catch (Exception e)
-        {
-            throw new Exception($"Error while updating product: {e.Message}");
-        }
     }
 
     public async Task<bool> DeleteProductAsync(int id)
     {
-        try
-        {
             var product = await context.Products.FirstOrDefaultAsync(x => x.Id == id);
             if (product == null)
             {
@@ -64,17 +48,10 @@ public class ProductService(DataContext context) : IProductService
             context.Products.Remove(product);
             await context.SaveChangesAsync();
             return true;
-        }
-        catch (Exception e)
-        {
-            throw new Exception($"Error while deleting product: {e.Message}");
-        }
     }
 
     public async Task<GetProductDto?> GetProductAsync(int id)
     {
-        try
-        {
             var product = await context.Products.FirstOrDefaultAsync(x => x.Id == id);
             if (product == null)
             {
@@ -93,17 +70,10 @@ public class ProductService(DataContext context) : IProductService
                 UpdatedAt = product.UpdatedAt,
             };
             return dto;
-        }
-        catch (Exception e)
-        {
-            throw new Exception($"Error while getting product: {e.Message}");
-        }
     }
 
     public async Task<List<GetProductDto>> GetAllProductAsync()
     {  
-        try
-        {
             var products = await context.Products
                 .Select(p => new GetProductDto
                 {
@@ -117,9 +87,4 @@ public class ProductService(DataContext context) : IProductService
 
             return products;
         }
-        catch (Exception ex)
-        {
-            throw new Exception($"Error while getting all products: {ex.Message}");
-        }
-    }
 }

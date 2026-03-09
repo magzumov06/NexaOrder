@@ -25,6 +25,12 @@ public static class BotCallbacks
     public const string GetOrders = "get_orders";
 
     public const string DeleteOrder = "delete_order";
+    
+    public const string AdminUser = "admin_user";
+    
+    public const string GetUser = "get_user";
+    
+    public const string GetUsers = "get_users";
 
     public const string Back = "go_back";
 }
