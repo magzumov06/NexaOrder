@@ -22,6 +22,7 @@ public class TelegramService(
     private readonly AdminCallbackHandler _adminCallback = new(bot);
     private readonly OrderCallbackHandler _orderCallback = new(bot, httpClient);
     private readonly ProductCallbackHandler _productCallback = new(bot, httpClient);
+    private readonly UserCallbackHandler _userCallback = new(bot, httpClient);
 
     public static readonly Dictionary<long, string> UserState = new();
     private static readonly Dictionary<long, CreateUserDto> TempUsers = new();
@@ -87,7 +88,6 @@ public class TelegramService(
         }
     }
 
-    // ================= REGISTRATION =================
 
     private async Task StartRegistration(long chatId)
     {
@@ -215,6 +215,26 @@ public class TelegramService(
         UserState[chatId] = "main";
     }
 
+    private async Task Getuser(long chatId, string text)
+    {
+        var response = await httpClient.GetAsync(
+            $"https://kenny-sunnier-russel.ngrok-free.dev/api/user/{text}");
+        
+        var json = await response.Content.ReadAsStringAsync();
+
+        var user = JsonSerializer.Deserialize<User>(json);
+
+        var message =
+            $"User info: " +
+            $"Username: {user.Username}, " +
+            $"Phone: {user.Phone}, " +
+            $"Address: {user.Address}, " +
+            $"Age: {user.Age}";
+        
+        await bot.SendMessage(chatId, message);
+        UserState[chatId] = "main";
+    }
+
     private async Task GetProduct(long chatId, string text)
     {
         var response = await httpClient.GetAsync(
@@ -303,6 +323,7 @@ public class TelegramService(
         await _adminCallback.Handle(chatId, data);
         await _orderCallback.Handle(chatId, data);
         await _productCallback.Handle(chatId, data);
+        await _userCallback.Handle(chatId, data);
 
         await bot.AnswerCallbackQuery(callback.Id);
     }

@@ -29,7 +29,7 @@ public class ProductCallbackHandler(ITelegramBotClient bot,
                 TelegramService.UserState[chatId] = "waiting_get_product";
                 await bot.SendMessage(chatId, "Send Product ID");
                 break;
-
+            
             case BotCallbacks.GetProducts:
                 var products = await GetProductsFromApi();
 

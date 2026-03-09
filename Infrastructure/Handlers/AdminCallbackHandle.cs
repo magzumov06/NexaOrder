@@ -27,6 +27,12 @@ public class AdminCallbackHandler(ITelegramBotClient bot)
                     "Order Management",
                     replyMarkup: AdminButtons.GetOrderAdminKeyboard());
                 break;
+            
+            case BotCallbacks.AdminUser:
+                await bot.SendMessage(chatId,
+                    "User Management",
+                    replyMarkup: AdminButtons.GetUserKeyboard());
+                break;
         }
     }
 }
