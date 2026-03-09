@@ -7,6 +7,7 @@ using Domain.Enums;
 using Domain.CallBack;
 using Infrastructure.Buttons;
 using Infrastructure.Handlers;
+using Infrastructure.HelperMethods;
 using Infrastructure.Interfaces;
 using Telegram.Bot;
 using Telegram.Bot.Types;
@@ -17,7 +18,9 @@ namespace Infrastructure.Services;
 
 public class TelegramService(
     ITelegramBotClient bot,
-    HttpClient httpClient) : ITelegramService
+    HttpClient httpClient,
+    OrderHelperMethods methods,
+    ProductHelperMethods product) : ITelegramService
 {
     private readonly AdminCallbackHandler _adminCallback = new(bot);
     private readonly OrderCallbackHandler _orderCallback = new(bot, httpClient);
@@ -67,19 +70,19 @@ public class TelegramService(
                 break;
 
             case "create_order":
-                await HandleCreateOrder(chatId, text);
+                await methods.CreateOrder(chatId, text);
                 break;
 
             case "waiting_delete_order":
-                await DeleteOrder(chatId, text);
+                await methods.DeleteOrder(chatId, text);
                 break;
 
             case "waiting_get_order":
-                await GetOrder(chatId, text);
+                await methods.GetOrder(chatId, text);
                 break;
 
             case "waiting_get_product":
-                await GetProduct(chatId, text);
+                await product.GetProduct(chatId, text);
                 break;
 
             case "waiting_get_user":
@@ -153,67 +156,7 @@ public class TelegramService(
             replyMarkup: MainButtons.GetMainKeyboard());
     }
 
-  
-
-    private async Task HandleCreateOrder(long chatId, string text)
-    {
-        var parts = text.Split(" ");
-
-        if (parts.Length != 2)
-        {
-            await bot.SendMessage(chatId,
-                "Format: ProductId Quantity\nExample: 1 2");
-            return;
-        }
-
-        if (!int.TryParse(parts[0], out var productId) ||
-            !int.TryParse(parts[1], out var quantity))
-        {
-            await bot.SendMessage(chatId,
-                "❌ Invalid numbers");
-            return;
-        }
-
-        var dto = new CreateOrderDto
-        {
-            ProductId = productId,
-            Quantity = quantity,
-            Address = "Telegram Order",
-            PaymentMethod = PaymentMethod.Cash
-        };
-
-        var response = await httpClient.PostAsJsonAsync(
-            "https://kenny-sunnier-russel.ngrok-free.dev/api/orders",
-            dto);
-
-        var result = await response.Content.ReadAsStringAsync();
-
-        await bot.SendMessage(chatId, result);
-
-        UserState[chatId] = "main";
-    }
-
-    private async Task DeleteOrder(long chatId, string text)
-    {
-        await httpClient.DeleteAsync(
-            $"https://kenny-sunnier-russel.ngrok-free.dev/api/orders/{text}");
-
-        await bot.SendMessage(chatId, "Order Deleted");
-
-        UserState[chatId] = "main";
-    }
-
-    private async Task GetOrder(long chatId, string text)
-    {
-        var response = await httpClient.GetAsync(
-            $"https://kenny-sunnier-russel.ngrok-free.dev/api/orders/{text}");
-
-        var json = await response.Content.ReadAsStringAsync();
-
-        await bot.SendMessage(chatId, json);
-
-        UserState[chatId] = "main";
-    }
+    
 
     private async Task Getuser(long chatId, string text)
     {
@@ -234,41 +177,7 @@ public class TelegramService(
         await bot.SendMessage(chatId, message);
         UserState[chatId] = "main";
     }
-
-    private async Task GetProduct(long chatId, string text)
-    {
-        var response = await httpClient.GetAsync(
-            $"https://kenny-sunnier-russel.ngrok-free.dev/api/products/{text}");
-
-        if (!response.IsSuccessStatusCode)
-        {
-            await bot.SendMessage(chatId, "❌ Product not found");
-            UserState[chatId] = "main";
-            return;
-        }
-
-        var json = await response.Content.ReadAsStringAsync();
-
-        var product = JsonSerializer.Deserialize<Product>(json);
-
-        if (product == null)
-        {
-            await bot.SendMessage(chatId, "❌ Error reading product");
-            UserState[chatId] = "main";
-            return;
-        }
-
-        var message =
-            $"📦 Product Info:\n\n" +
-            $"🆔 Id: {product.Id}\n" +
-            $"📛 Name: {product.Name}\n" +
-            $"💰 Price: {product.Price}\n" +
-            $"📦 Quantity: {product.Quantity}";
-
-        await bot.SendMessage(chatId, message);
-
-        UserState[chatId] = "main";
-    }
+    
 
     private async Task GetUser(long chatId, string text)
     {
