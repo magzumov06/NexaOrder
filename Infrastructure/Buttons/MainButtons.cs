@@ -16,10 +16,6 @@ public static class MainButtons
             new[]
             {
                 InlineKeyboardButton.WithCallbackData("🛍 Products", BotCallbacks.Products)
-            },
-            new[]
-            {
-                InlineKeyboardButton.WithCallbackData("👑 Admin Panel", BotCallbacks.AdminPanel)
             }
         });
     }

@@ -5,6 +5,15 @@ namespace Infrastructure.Buttons;
 
 public static class AdminButtons
 {
+    public static InlineKeyboardMarkup GetAdminButtons()
+    {
+        return new InlineKeyboardMarkup(
+            new[]
+            {
+                InlineKeyboardButton.WithCallbackData("👑 Admin Panel", BotCallbacks.AdminPanel)
+            });
+    }
+    
     public static InlineKeyboardMarkup GetOrderAdminKeyboard()
     {
         return new InlineKeyboardMarkup([
@@ -65,6 +74,9 @@ public static class AdminButtons
     public static InlineKeyboardMarkup GetUserKeyboard()
     {
         return new InlineKeyboardMarkup([
+            [
+                InlineKeyboardButton.WithCallbackData("DeleteUser" , BotCallbacks.DeleteUser)
+            ],
             [
                 InlineKeyboardButton.WithCallbackData("GetUserById", BotCallbacks.GetUser)
             ],

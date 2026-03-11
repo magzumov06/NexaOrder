@@ -1,5 +1,6 @@
 ﻿using Domain.DTO.User;
 using Domain.Entities;
+using Domain.Enums;
 using Infrastructure.Data;
 using Infrastructure.Interfaces;
 using Microsoft.EntityFrameworkCore;
@@ -10,32 +11,33 @@ public class UserService(DataContext context) : IUserService
 {
     public async Task<string> CreateUserAsync(CreateUserDto createUserDto)
     {
-        try
+        var phone = createUserDto.Phone.Replace(" ", "");
+
+        var existingUser = await context.Users
+            .FirstOrDefaultAsync(u => u.Phone == phone);
+
+        if (existingUser != null)
+            return "User already exists";
+
+        var newUser = new User()
         {
-            // var newUser = new User()
-            // {
-            //     Username = createUserDto.Username,
-            //     Address = createUserDto.Address,
-            //     Age = createUserDto.Age, 
-            //     Phone = createUserDto.Phone,
-            //     IsBlocked = false,
-            //     IsAdmin = false,
-            //     CreatedAt = DateTime.UtcNow
-            //     
-            // };
-            // await context.Users.AddAsync(newUser);
-            // await context.SaveChangesAsync();
-            // if (newUser.Id == 1)
-            // {
-            //     newUser.IsAdmin = true;
-            //     await context.SaveChangesAsync();
-            // }
-            return "User created";
-        }
-        catch (Exception e)
-        {
-            throw new Exception("Error creating user" + e.Message);
-        }
+            Username = createUserDto.Username,
+            Address = createUserDto.Address,
+            Age = createUserDto.Age,
+            Phone = phone,
+            TelegramId = createUserDto.TelegramId,
+            Role = phone.Contains("208020660")
+                ? UserRole.Admin
+                : UserRole.User,
+            IsBlocked = false,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        await context.Users.AddAsync(newUser);
+        await context.SaveChangesAsync();
+
+        Console.WriteLine($"TelegramId: {createUserDto.TelegramId}");
+        return "User created";
     }
 
     public async Task<string> UpdateUserAsync(UpdateUserDto updateUserDto)
@@ -81,29 +83,20 @@ public class UserService(DataContext context) : IUserService
 
     public async Task<GetUserDto?> GetUserAsync(int id)
     {
-        try
-        {
-            var user = await context.Users.FirstOrDefaultAsync(x => x.Id == id);
-            if (user == null)
-            {
-                return null;
-            }
+        var user = await context.Users.FirstOrDefaultAsync(x => x.Id == id);
+        if (user == null) return null;
 
-            var dto = new GetUserDto()
-            {
-                Username = user.Username,
-                Address = user.Address,
-                Age = user.Age,
-                Phone = user.Phone,
-            };
-            return dto;
-        }
-        catch (Exception e)
+        return new GetUserDto
         {
-            throw new Exception("Error getting user" + e.Message);
-        }
+            Id = user.Id,
+            TelegramId = user.TelegramId,
+            Username = user.Username,
+            Address = user.Address,
+            Age = user.Age,
+            Phone = user.Phone,
+            Role = user.Role
+        };
     }
-
     public async Task<List<GetUserDto>> GetUsersAsync()
     {
         try
@@ -111,10 +104,12 @@ public class UserService(DataContext context) : IUserService
             var users = await context.Users
                 .Select(u=>new GetUserDto()
                 {
+                    Id = u.Id,
+                    TelegramId = u.TelegramId,
                     Username = u.Username,
                     Address = u.Address,
                     Age = u.Age,
-                    Phone = u.Phone
+                    Phone = u.Phone,
                 }).ToListAsync();
             return users;
         }
@@ -122,5 +117,10 @@ public class UserService(DataContext context) : IUserService
         {
             throw new Exception("Error getting users" + e.Message);
         }
+    }
+
+    public async Task<User?> GetUserByPhoneAsync(string phoneNumber)
+    {
+        return await context.Users.FirstOrDefaultAsync(x => x.Phone == phoneNumber);
     }
 }

@@ -31,6 +31,8 @@ public static class BotCallbacks
     public const string GetUser = "get_user";
     
     public const string GetUsers = "get_users";
+    
+    public const string DeleteUser = "delete_user";
 
     public const string Back = "go_back";
 }

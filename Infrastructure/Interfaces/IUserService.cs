@@ -1,4 +1,5 @@
 ﻿using Domain.DTO.User;
+using Domain.Entities;
 
 namespace Infrastructure.Interfaces;
 
@@ -9,4 +10,5 @@ public interface IUserService
     Task<string> DeleteUserAsync(int id);
     Task<GetUserDto?> GetUserAsync(int id);
     Task<List<GetUserDto>> GetUsersAsync();
+    Task<User?> GetUserByPhoneAsync(string phoneNumber);
 }

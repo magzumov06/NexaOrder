@@ -15,6 +15,11 @@ public class UserCallbackHandler(ITelegramBotClient bot,
                 TelegramService.UserState[chatId] = "waiting_get_user";
                 await bot.SendMessage(chatId, "Send User ID");
                 break;
+            
+            case BotCallbacks.DeleteUser:
+                TelegramService.UserState[chatId] = "waiting_delete_user";
+                await bot.SendMessage(chatId, "Send User ID");
+                break;
         }
     } 
 }
