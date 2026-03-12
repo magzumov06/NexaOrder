@@ -5,15 +5,6 @@ namespace Infrastructure.Buttons;
 
 public static class AdminButtons
 {
-    public static InlineKeyboardMarkup GetAdminButtons()
-    {
-        return new InlineKeyboardMarkup(
-            new[]
-            {
-                InlineKeyboardButton.WithCallbackData("👑 Admin Panel", BotCallbacks.AdminPanel)
-            });
-    }
-    
     public static InlineKeyboardMarkup GetOrderAdminKeyboard()
     {
         return new InlineKeyboardMarkup([
@@ -38,12 +29,7 @@ public static class AdminButtons
             [
                 InlineKeyboardButton.WithCallbackData("➕ Create", BotCallbacks.CreateProduct)
             ],
-            [
-                InlineKeyboardButton.WithCallbackData("🔎 Get By Id", BotCallbacks.GetProduct)
-            ],
-            [
-                InlineKeyboardButton.WithCallbackData("GetProducts", BotCallbacks.GetProducts)
-            ],
+            
             [
                 InlineKeyboardButton.WithCallbackData("🗑 Delete", BotCallbacks.DeleteProduct)
             ],
@@ -63,10 +49,7 @@ public static class AdminButtons
                 InlineKeyboardButton.WithCallbackData("📑 Orders",BotCallbacks.AdminOrders )
             ],
             [
-                InlineKeyboardButton.WithCallbackData("Users", BotCallbacks.AdminUser)
-            ],
-            [
-                InlineKeyboardButton.WithCallbackData("🔙 Back", BotCallbacks.Back)
+                InlineKeyboardButton.WithCallbackData("👤 Users", BotCallbacks.AdminUser)
             ]
         ]);
     }
@@ -82,6 +65,9 @@ public static class AdminButtons
             ],
             [
                 InlineKeyboardButton.WithCallbackData("GetUsers", BotCallbacks.GetUsers)
+            ],
+            [
+                InlineKeyboardButton.WithCallbackData("🔙 Back", BotCallbacks.AdminPanel)
             ]
         ]);
     }

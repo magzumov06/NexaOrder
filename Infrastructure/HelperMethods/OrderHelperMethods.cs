@@ -1,5 +1,7 @@
 ﻿using System.Net.Http.Json;
+using System.Text.Json;
 using Domain.DTO.Order;
+using Domain.Entities;
 using Domain.Enums;
 using Infrastructure.Services;
 using Telegram.Bot;
@@ -76,6 +78,20 @@ public class OrderHelperMethods(ITelegramBotClient bot,
         await bot.SendMessage(chatId, json);
 
         TelegramService.UserState[chatId] = "main";
+    }
+    
+    public async Task<List<Order>> GetOrdersFromApi()
+    {
+        var response = await httpClient.GetAsync(
+            "https://kenny-sunnier-russel.ngrok-free.dev/api/orders");
+
+        if (!response.IsSuccessStatusCode)
+            return new List<Order>();
+
+        var json = await response.Content.ReadAsStringAsync();
+
+        return JsonSerializer.Deserialize<List<Order>>(json)
+               ?? new List<Order>();
     }
     
 }

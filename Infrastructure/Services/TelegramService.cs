@@ -1,10 +1,9 @@
 ﻿using System.Net.Http.Json;
 using System.Text.Json;
-using Domain.DTO.Order;
 using Domain.DTO.User;
-using Domain.Entities;
-using Domain.Enums;
 using Domain.CallBack;
+using Domain.DTO.Role;
+using Domain.Enums;
 using Infrastructure.Buttons;
 using Infrastructure.Handlers;
 using Infrastructure.HelperMethods;
@@ -12,20 +11,19 @@ using Infrastructure.Interfaces;
 using Telegram.Bot;
 using Telegram.Bot.Types;
 
-using User = Domain.Entities.User;
-
 namespace Infrastructure.Services;
 
 public class TelegramService(
     ITelegramBotClient bot,
     HttpClient httpClient,
-    OrderHelperMethods methods,
+    OrderHelperMethods order,
     ProductHelperMethods product) : ITelegramService
 {
     private readonly AdminCallbackHandler _adminCallback = new(bot);
-    private readonly OrderCallbackHandler _orderCallback = new(bot, httpClient);
+    private readonly MainCallbackHandndler _mainCallbackHandndler = new(bot);
+    private readonly OrderCallbackHandler _orderCallback = new(bot, order);
     private readonly ProductCallbackHandler _productCallback = new(bot, httpClient);
-    private readonly UserCallbackHandler _userCallback = new(bot, httpClient);
+    private readonly UserCallbackHandler _userCallback = new(bot);
 
     public static readonly Dictionary<long, string> UserState = new();
     private static readonly Dictionary<long, CreateUserDto> TempUsers = new();
@@ -44,16 +42,14 @@ public class TelegramService(
         var chatId = message.Chat.Id;
         var text = message.Text ?? "";
 
-        if (text == "/start")
+        switch (text)
         {
-            await StartRegistration(chatId);
-            return;
-        }
-        
-        if (text == "/admin")
-        {
-            await ShowAdminPanel(chatId);
-            return;
+            case "/start":
+                await StartRegistration(chatId);
+                return;
+            case "/admin":
+                await ShowAdminPanel(chatId);
+                return;
         }
 
         if (message.Contact != null)
@@ -70,24 +66,28 @@ public class TelegramService(
             case "waiting_username":
                 await HandleUsername(chatId, text);
                 break;
+            
+            case "waiting_age":
+                await HandleAge(chatId, text);
+                break;
 
             case "waiting_address":
                 await HandleAddress(chatId, text);
                 break;
 
             case "create_order":
-                await methods.CreateOrder(chatId, text);
+                await order.CreateOrder(chatId, text);
                 break;
 
             case "waiting_delete_order":
-                await methods.DeleteOrder(chatId, text);
+                await order.DeleteOrder(chatId, text);
                 break;
             case "waiting_delete_user":
-                await methods.DeleteUser(chatId, text);
+                await order.DeleteUser(chatId, text);
                 break;
 
             case "waiting_get_order":
-                await methods.GetOrder(chatId, text);
+                await order.GetOrder(chatId, text);
                 break;
 
             case "waiting_get_product":
@@ -152,13 +152,27 @@ public class TelegramService(
         await bot.SendMessage(chatId, "Номатонро ворид кунед:");
     }
 
+    private async Task HandleAge(long chatId, string age)
+    {
+        if (!int.TryParse(age, out var parsedAge))
+        {
+            await bot.SendMessage(chatId, "❌ Лутфан рақам ворид кунед.");
+            return;
+        }
+
+        TempUsers[chatId].Age = parsedAge;
+        UserState[chatId] = "waiting_address";
+
+        await bot.SendMessage(chatId, "Шумо аз кадом шаҳр ҳастед?");
+    }
+
     private async Task HandleUsername(long chatId, string username)
     {
         TempUsers[chatId].Username = username;
 
-        UserState[chatId] = "waiting_address";
+        UserState[chatId] = "waiting_age";
 
-        await bot.SendMessage(chatId, "Адрес / шаҳрро ворид кунед:");
+        await bot.SendMessage(chatId, "Шумо чандсола ҳастед?");
     }
 
     private async Task HandleAddress(long chatId, string text)
@@ -166,17 +180,13 @@ public class TelegramService(
         var dto = TempUsers[chatId];
 
         dto.Address = text;
-        dto.TelegramId = chatId;   // <- Ин ҷо муҳим аст
+        dto.TelegramId = chatId;  
 
-        Console.WriteLine($"DTO перед отправкой: {JsonSerializer.Serialize(dto)}"); // debug
 
         var response = await httpClient.PostAsJsonAsync<CreateUserDto>(
             "https://kenny-sunnier-russel.ngrok-free.dev/api/user",
             dto);
-
-        var result = await response.Content.ReadAsStringAsync();
-        Console.WriteLine($"Response API: {result}"); // debug
-
+        
         TempUsers.Remove(chatId);
         UserState[chatId] = "main";
 
@@ -188,8 +198,14 @@ public class TelegramService(
    
     private async Task GetUser(long chatId, string text)
     {
+        if (!int.TryParse(text, out var id))
+        {
+            await bot.SendMessage(chatId, "❌ Invalid Id");
+            return;
+        }
+
         var response = await httpClient.GetAsync(
-            $"https://kenny-sunnier-russel.ngrok-free.dev/api/user/{text}");
+            $"https://kenny-sunnier-russel.ngrok-free.dev/api/user/{id}");
 
         if (!response.IsSuccessStatusCode)
         {
@@ -197,9 +213,7 @@ public class TelegramService(
             return;
         }
 
-        var json = await response.Content.ReadAsStringAsync();
-
-        var user = JsonSerializer.Deserialize<User>(json);
+        var user = await response.Content.ReadFromJsonAsync<GetUserDto>();
 
         if (user == null)
             return;
@@ -215,9 +229,8 @@ public class TelegramService(
             $"Role: {user.Role}";
 
         await bot.SendMessage(chatId, message);
-
-        UserState[chatId] = "main";
     }
+
 
    
 
@@ -244,6 +257,7 @@ public class TelegramService(
         await _orderCallback.Handle(chatId, data);
         await _productCallback.Handle(chatId, data);
         await _userCallback.Handle(chatId, data);
+        await _mainCallbackHandndler.Handle(chatId, data);
 
         await bot.AnswerCallbackQuery(callback.Id);
     }
@@ -251,19 +265,32 @@ public class TelegramService(
     
     private async Task ShowAdminPanel(long chatId)
     {
-        var response = await httpClient.GetAsync(
-            $"https://kenny-sunnier-russel.ngrok-free.dev/api/user/role/{chatId}");
-
-        var json = await response.Content.ReadAsStringAsync();
-        var obj = JsonSerializer.Deserialize<Dictionary<string, string>>(json);
-
-        if (obj == null || !obj.ContainsKey("Role") || obj["Role"] != "Admin")
+        try
         {
-            await bot.SendMessage(chatId, "❌ Шумо иҷозат надоред.");
-            return;
-        }
+            var response = await httpClient.GetAsync(
+                $"https://kenny-sunnier-russel.ngrok-free.dev/api/user/role/{chatId}");
 
-        await bot.SendMessage(chatId, "Admin Panel",
-            replyMarkup: AdminButtons.GetAdminKeyboard());
+            if (!response.IsSuccessStatusCode)
+            {
+                await bot.SendMessage(chatId, "❌ Access denied");
+                return;
+            }
+
+            var role = await response.Content.ReadFromJsonAsync<RoleDto>();
+
+            if (role == null || role.Role != UserRole.Admin)
+            {
+                await bot.SendMessage(chatId, "❌ Шумо Admin нестед.");
+                return;
+            }
+
+            await bot.SendMessage(chatId,
+                "Admin Panel",
+                replyMarkup: AdminButtons.GetAdminKeyboard());
+        }
+        catch (Exception)
+        {
+            await bot.SendMessage(chatId, "❌ Server error");
+        }
     }
 }

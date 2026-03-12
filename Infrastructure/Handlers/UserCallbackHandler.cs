@@ -4,8 +4,7 @@ using Telegram.Bot;
 
 namespace Infrastructure.Handlers;
 
-public class UserCallbackHandler(ITelegramBotClient bot,
-    HttpClient httpClient)
+public class UserCallbackHandler(ITelegramBotClient bot)
 {
     public async Task Handle(long chatId, string data)
     {

@@ -39,7 +39,7 @@ public class UserController(IUserService userService,
         var res = await userService.GetUserAsync(id);
         if (res == null)
             return NotFound();
-        return Ok(res);  // ин User-ро мустақиман мефиристад
+        return Ok(res);
     }
     
     [HttpGet]
@@ -68,10 +68,12 @@ public class UserController(IUserService userService,
     [HttpGet("role/{telegramId}")]
     public async Task<IActionResult> GetRole(long telegramId)
     {
-        var user = await context.Users.FirstOrDefaultAsync(u => u.TelegramId == telegramId);
+        var user = await context.Users
+            .FirstOrDefaultAsync(u => u.TelegramId == telegramId);
+
         if (user == null)
             return NotFound();
 
-        return Ok(new { Role = user.Role.ToString() });
+        return Ok(new { Role = user.Role });
     }
 }

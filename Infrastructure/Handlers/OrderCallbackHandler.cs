@@ -1,7 +1,6 @@
 ﻿using System.Text;
-using System.Text.Json;
 using Domain.CallBack;
-using Domain.Entities;
+using Infrastructure.HelperMethods;
 using Infrastructure.Services;
 using Telegram.Bot;
 
@@ -9,7 +8,7 @@ namespace Infrastructure.Handlers;
 
 public class OrderCallbackHandler(
     ITelegramBotClient bot,
-    HttpClient httpClient)
+    OrderHelperMethods order)
 {
     public async Task Handle(long chatId, string data)
     {
@@ -38,7 +37,7 @@ public class OrderCallbackHandler(
 
             case BotCallbacks.GetOrders:
 
-                var orders = await GetOrdersFromApi();
+                var orders = await order.GetOrdersFromApi();
 
                 var text = new StringBuilder("Orders:\n\n");
 
@@ -56,19 +55,5 @@ public class OrderCallbackHandler(
                 await bot.SendMessage(chatId, text.ToString());
                 break;
         }
-    }
-
-    private async Task<List<Order>> GetOrdersFromApi()
-    {
-        var response = await httpClient.GetAsync(
-            "https://kenny-sunnier-russel.ngrok-free.dev/api/orders");
-
-        if (!response.IsSuccessStatusCode)
-            return new List<Order>();
-
-        var json = await response.Content.ReadAsStringAsync();
-
-        return JsonSerializer.Deserialize<List<Order>>(json)
-               ?? new List<Order>();
     }
 }

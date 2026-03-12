@@ -19,4 +19,17 @@ public static class MainButtons
             }
         });
     }
+
+    public static InlineKeyboardMarkup GetProductsKeyboard()
+    {
+        return new InlineKeyboardMarkup([
+
+            [
+                InlineKeyboardButton.WithCallbackData("🔎 Get By Id", BotCallbacks.GetProduct)
+            ],
+            [
+                InlineKeyboardButton.WithCallbackData("🔎 GetProducts", BotCallbacks.GetProducts)
+            ]
+        ]);
+    }
 }
