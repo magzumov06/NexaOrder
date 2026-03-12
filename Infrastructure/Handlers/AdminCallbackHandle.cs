@@ -12,25 +12,25 @@ public class AdminCallbackHandler(ITelegramBotClient bot)
         {
             case BotCallbacks.AdminPanel:
                 await bot.SendMessage(chatId,
-                    "Admin Panel",
+                    "🛠 Admin Panel",
                     replyMarkup: AdminButtons.GetAdminKeyboard());
                 break;
 
             case BotCallbacks.AdminProducts:
                 await bot.SendMessage(chatId,
-                    "Product Management",
+                    "📦 Product Management",
                     replyMarkup: AdminButtons.GetProductAdminKeyboard());
                 break;
 
             case BotCallbacks.AdminOrders:
                 await bot.SendMessage(chatId,
-                    "Order Management",
+                    "🧾 Order Management",
                     replyMarkup: AdminButtons.GetOrderAdminKeyboard());
                 break;
-            
+
             case BotCallbacks.AdminUser:
                 await bot.SendMessage(chatId,
-                    "User Management",
+                    "👤 User Management",
                     replyMarkup: AdminButtons.GetUserKeyboard());
                 break;
         }

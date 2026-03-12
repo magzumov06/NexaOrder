@@ -78,6 +78,10 @@ public class TelegramService(
             case "create_order":
                 await order.CreateOrder(chatId, text);
                 break;
+            
+            case "update_product":
+                await product.UpdateProduct(chatId, text);
+                break;
 
             case "waiting_delete_order":
                 await order.DeleteOrder(chatId, text);
@@ -217,16 +221,16 @@ public class TelegramService(
 
         if (user == null)
             return;
-
+        
         var message =
-            $"User Info:\n" +
-            $"Id: {user.Id}\n" +
-            $"TelegramId: {user.TelegramId}\n" +
-            $"Username: {user.Username}\n" +
-            $"Phone: {user.Phone}\n" +
-            $"Address: {user.Address}\n" +
-            $"Age: {user.Age}\n"+
-            $"Role: {user.Role}";
+            $"👤 User Info:\n" +
+            $"🆔 Id: {user.Id}\n" +
+            $"💬 TelegramId: {user.TelegramId}\n" +
+            $"📛 Username: {user.Username}\n" +
+            $"📱 Phone: {user.Phone}\n" +
+            $"🏠 Address: {user.Address}\n" +
+            $"🎂 Age: {user.Age}\n" +
+            $"🔑 Role: {user.Role}";
 
         await bot.SendMessage(chatId, message);
     }
@@ -248,7 +252,7 @@ public class TelegramService(
                 UserState[chatId] = "main";
 
                 await bot.SendMessage(chatId,
-                    "Main Menu",
+                    "🏠 Main Menu",
                     replyMarkup: MainButtons.GetMainKeyboard());
                 break;
         }
@@ -285,7 +289,7 @@ public class TelegramService(
             }
 
             await bot.SendMessage(chatId,
-                "Admin Panel",
+                "🛠 Admin Panel",
                 replyMarkup: AdminButtons.GetAdminKeyboard());
         }
         catch (Exception)

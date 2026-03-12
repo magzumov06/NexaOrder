@@ -10,9 +10,9 @@ public class MainCallbackHandndler(ITelegramBotClient bot)
     {
         switch (data)
         {
-            case BotCallbacks.GetProduct:
+            case BotCallbacks.Products:
                 await bot.SendMessage(chatId,
-                    "Products",
+                    "🛍 Products",
                     replyMarkup: MainButtons.GetProductsKeyboard());
                 break;
         }

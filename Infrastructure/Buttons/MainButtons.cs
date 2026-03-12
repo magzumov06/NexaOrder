@@ -29,6 +29,9 @@ public static class MainButtons
             ],
             [
                 InlineKeyboardButton.WithCallbackData("🔎 GetProducts", BotCallbacks.GetProducts)
+            ],
+            [
+                InlineKeyboardButton.WithCallbackData("🔙 Back", BotCallbacks.Back)
             ]
         ]);
     }

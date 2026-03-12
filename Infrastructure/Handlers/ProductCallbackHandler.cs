@@ -20,6 +20,12 @@ public class ProductCallbackHandler(ITelegramBotClient bot,
                     "Send Product: Name Price Quantity");
                 break;
             
+            case BotCallbacks.UpdateProduct:
+                TelegramService.UserState[chatId] = "update_product";
+                await bot.SendMessage(chatId,
+                    "Send Product Id");
+                break;
+            
             case BotCallbacks.DeleteProduct:
                 TelegramService.UserState[chatId] = "waiting_delete_product";
                 await bot.SendMessage(chatId, "Send Product ID");

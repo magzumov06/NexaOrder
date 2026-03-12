@@ -17,7 +17,7 @@ public class ProductController(IProductService productService) : ControllerBase
     }
 
     [HttpPut]
-    public async Task<IActionResult> Update([FromForm] UpdateProductDto dto)
+    public async Task<IActionResult> Update([FromBody]UpdateProductDto dto)
     {
         var res = await productService.UpdateProductAsync(dto);
         if (res == null)

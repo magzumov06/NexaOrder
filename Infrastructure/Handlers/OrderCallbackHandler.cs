@@ -43,12 +43,12 @@ public class OrderCallbackHandler(
 
                 foreach (var o in orders)
                 {
-                    text.AppendLine($"Id: {o.Id}");
-                    text.AppendLine($"ProductId: {o.ProductId}");
-                    text.AppendLine($"Quantity: {o.Quantity}");
-                    text.AppendLine($"Address: {o.Address}");
-                    text.AppendLine($"Payment: {o.PaymentMethod}");
-                    text.AppendLine($"Status: {o.Status}");
+                    text.AppendLine($"🆔 Id: {o.Id}");
+                    text.AppendLine($"📦 ProductId: {o.ProductId}");
+                    text.AppendLine($"🔢 Quantity: {o.Quantity}");
+                    text.AppendLine($"📍 Address: {o.Address}");
+                    text.AppendLine($"💳 Payment: {o.PaymentMethod}");
+                    text.AppendLine($"📊 Status: {o.Status}");
                     text.AppendLine();
                 }
 

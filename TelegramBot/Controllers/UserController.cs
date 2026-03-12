@@ -46,10 +46,6 @@ public class UserController(IUserService userService,
     public async Task<IActionResult> GetUsersAsync()
     {
         var res = await userService.GetUsersAsync();
-        if (res == null)
-        {
-            return NotFound();
-        }
         return Ok(res);
     }
     
