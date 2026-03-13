@@ -6,12 +6,13 @@ namespace Infrastructure.Handlers;
 
 public class MainCallbackHandndler(ITelegramBotClient bot)
 {
-    public async Task Handle(long chatId, string data)
+    public async Task Handle(long chatId,int messageId, string data)
     {
         switch (data)
         {
             case BotCallbacks.Products:
-                await bot.SendMessage(chatId,
+                await bot.EditMessageText(chatId,
+                    messageId,
                     "🛍 Products",
                     replyMarkup: MainButtons.GetProductsKeyboard());
                 break;

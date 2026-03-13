@@ -87,4 +87,18 @@ public class ProductHelperMethods(ITelegramBotClient bot,
 
         TelegramService.UserState[chatId] = "main";
     }
+    
+    public async Task<List<Product>> GetProductsFromApi()
+    {
+        var response = await httpClient.GetAsync(
+            "https://kenny-sunnier-russel.ngrok-free.dev/api/products");
+
+        if (!response.IsSuccessStatusCode)
+            return new List<Product>();
+
+        var json = await response.Content.ReadAsStringAsync();
+
+        return JsonSerializer.Deserialize<List<Product>>(json)
+               ?? new List<Product>();
+    }
 }

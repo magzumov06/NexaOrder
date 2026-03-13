@@ -58,15 +58,6 @@ public class OrderHelperMethods(ITelegramBotClient bot,
 
         TelegramService.UserState[chatId] = "main";
     }
-
-    public async Task DeleteUser(long chatId, string text)
-    {
-        await httpClient.DeleteAsync(
-            $"https://kenny-sunnier-russel.ngrok-free.dev/api/user/{text}"
-        );
-        await bot.SendMessage(chatId, "User Deleted");
-        TelegramService.UserState[chatId] = "main";
-    }
     
     public async Task GetOrder(long chatId, string text)
     {

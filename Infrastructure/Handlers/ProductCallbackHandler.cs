@@ -2,13 +2,14 @@
 using System.Text.Json;
 using Domain.CallBack;
 using Domain.Entities;
+using Infrastructure.HelperMethods;
 using Infrastructure.Services;
 using Telegram.Bot;
 
 namespace Infrastructure.Handlers;
 
 public class ProductCallbackHandler(ITelegramBotClient bot,
-    HttpClient httpClient)
+    ProductHelperMethods product)
 {
     public async Task Handle(long chatId, string data)
     {
@@ -37,7 +38,7 @@ public class ProductCallbackHandler(ITelegramBotClient bot,
                 break;
             
             case BotCallbacks.GetProducts:
-                var products = await GetProductsFromApi();
+                var products = await product.GetProductsFromApi();
 
                 var text = new StringBuilder("📦 Product Info:\n\n");
 
@@ -54,19 +55,5 @@ public class ProductCallbackHandler(ITelegramBotClient bot,
                 await bot.SendMessage(chatId, text.ToString());
                 break;
         }
-    }
-    
-    private async Task<List<Product>> GetProductsFromApi()
-    {
-        var response = await httpClient.GetAsync(
-            "https://kenny-sunnier-russel.ngrok-free.dev/api/products");
-
-        if (!response.IsSuccessStatusCode)
-            return new List<Product>();
-
-        var json = await response.Content.ReadAsStringAsync();
-
-        return JsonSerializer.Deserialize<List<Product>>(json)
-               ?? new List<Product>();
     }
 }

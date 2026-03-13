@@ -48,6 +48,9 @@ public static class AdminButtons
                 InlineKeyboardButton.WithCallbackData("🔎 Get Order By Id", BotCallbacks.GetOrder)
             ],
             [
+                InlineKeyboardButton.WithCallbackData("🔎 Get Orders", BotCallbacks.GetOrders)
+            ],
+            [
                 InlineKeyboardButton.WithCallbackData("🗑 Delete Order", BotCallbacks.DeleteOrder)
             ],
             [

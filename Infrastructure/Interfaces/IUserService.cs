@@ -11,4 +11,5 @@ public interface IUserService
     Task<GetUserDto?> GetUserAsync(int id);
     Task<List<GetUserDto>> GetUsersAsync();
     Task<User?> GetUserByPhoneAsync(string phoneNumber);
+    Task<User?> GetRole (long telegramId);
 }

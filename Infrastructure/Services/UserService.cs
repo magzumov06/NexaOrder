@@ -123,4 +123,11 @@ public class UserService(DataContext context) : IUserService
     {
         return await context.Users.FirstOrDefaultAsync(x => x.Phone == phoneNumber);
     }
+
+    public async Task<User?> GetRole(long telegramId)
+    {
+        var user = await context.Users
+            .FirstOrDefaultAsync(u => u.TelegramId == telegramId);
+        return user;
+    }
 }

@@ -64,12 +64,11 @@ public class UserController(IUserService userService,
     [HttpGet("role/{telegramId}")]
     public async Task<IActionResult> GetRole(long telegramId)
     {
-        var user = await context.Users
-            .FirstOrDefaultAsync(u => u.TelegramId == telegramId);
+        var res = await userService.GetRole(telegramId);
 
-        if (user == null)
+        if (res == null)
             return NotFound();
 
-        return Ok(new { Role = user.Role });
+        return Ok(new { Role = res.Role });
     }
 }

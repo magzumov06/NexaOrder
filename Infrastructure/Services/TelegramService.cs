@@ -17,13 +17,14 @@ public class TelegramService(
     ITelegramBotClient bot,
     HttpClient httpClient,
     OrderHelperMethods order,
-    ProductHelperMethods product) : ITelegramService
+    ProductHelperMethods product,
+    UserHelperMethods user) : ITelegramService
 {
     private readonly AdminCallbackHandler _adminCallback = new(bot);
-    private readonly MainCallbackHandndler _mainCallbackHandndler = new(bot);
+    private readonly MainCallbackHandndler _mainCallback = new(bot);
     private readonly OrderCallbackHandler _orderCallback = new(bot, order);
-    private readonly ProductCallbackHandler _productCallback = new(bot, httpClient);
-    private readonly UserCallbackHandler _userCallback = new(bot);
+    private readonly ProductCallbackHandler _productCallback = new(bot, product);
+    private readonly UserCallbackHandler _userCallback = new(bot, user);
 
     public static readonly Dictionary<long, string> UserState = new();
     private static readonly Dictionary<long, CreateUserDto> TempUsers = new();
@@ -87,7 +88,7 @@ public class TelegramService(
                 await order.DeleteOrder(chatId, text);
                 break;
             case "waiting_delete_user":
-                await order.DeleteUser(chatId, text);
+                await user.DeleteUser(chatId, text);
                 break;
 
             case "waiting_get_order":
@@ -99,7 +100,7 @@ public class TelegramService(
                 break;
 
             case "waiting_get_user":
-                await GetUser(chatId, text);
+                await user.GetUser(chatId, text);
                 break;
         }
     }
@@ -198,42 +199,7 @@ public class TelegramService(
             "✅ Registration completed",
             replyMarkup: MainButtons.GetMainKeyboard());
     }
-
-   
-    private async Task GetUser(long chatId, string text)
-    {
-        if (!int.TryParse(text, out var id))
-        {
-            await bot.SendMessage(chatId, "❌ Invalid Id");
-            return;
-        }
-
-        var response = await httpClient.GetAsync(
-            $"https://kenny-sunnier-russel.ngrok-free.dev/api/user/{id}");
-
-        if (!response.IsSuccessStatusCode)
-        {
-            await bot.SendMessage(chatId, "❌ User not found");
-            return;
-        }
-
-        var user = await response.Content.ReadFromJsonAsync<GetUserDto>();
-
-        if (user == null)
-            return;
-        
-        var message =
-            $"👤 User Info:\n" +
-            $"🆔 Id: {user.Id}\n" +
-            $"💬 TelegramId: {user.TelegramId}\n" +
-            $"📛 Username: {user.Username}\n" +
-            $"📱 Phone: {user.Phone}\n" +
-            $"🏠 Address: {user.Address}\n" +
-            $"🎂 Age: {user.Age}\n" +
-            $"🔑 Role: {user.Role}";
-
-        await bot.SendMessage(chatId, message);
-    }
+    
 
 
    
@@ -244,6 +210,7 @@ public class TelegramService(
             return;
 
         var chatId = callback.Message.Chat.Id;
+        var messageId = callback.Message.MessageId;
         var data = callback.Data;
 
         switch (data)
@@ -251,21 +218,23 @@ public class TelegramService(
             case BotCallbacks.Back:
                 UserState[chatId] = "main";
 
-                await bot.SendMessage(chatId,
+                await bot.EditMessageText(
+                    chatId,
+                    messageId,
                     "🏠 Main Menu",
                     replyMarkup: MainButtons.GetMainKeyboard());
+
                 break;
         }
 
-        await _adminCallback.Handle(chatId, data);
+        await _adminCallback.Handle(chatId, messageId, data);
         await _orderCallback.Handle(chatId, data);
         await _productCallback.Handle(chatId, data);
         await _userCallback.Handle(chatId, data);
-        await _mainCallbackHandndler.Handle(chatId, data);
+        await _mainCallback.Handle(chatId,messageId, data);
 
         await bot.AnswerCallbackQuery(callback.Id);
     }
-    
     
     private async Task ShowAdminPanel(long chatId)
     {
