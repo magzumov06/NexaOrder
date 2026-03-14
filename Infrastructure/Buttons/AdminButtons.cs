@@ -54,9 +54,6 @@ public static class AdminButtons
                 InlineKeyboardButton.WithCallbackData("🗑 Delete Order", BotCallbacks.DeleteOrder)
             ],
             [
-                InlineKeyboardButton.WithCallbackData("✏️ Update Product", BotCallbacks.UpdateProduct)    
-            ],
-            [
                 InlineKeyboardButton.WithCallbackData("🔙 Back", BotCallbacks.AdminPanel)
             ]
         ]);

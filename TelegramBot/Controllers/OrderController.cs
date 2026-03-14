@@ -9,9 +9,11 @@ namespace TelegramBot.Controllers;
 public class OrderController(IOrderService orderService) : ControllerBase
 {
     [HttpPost]
-    public async Task<IActionResult> Create([FromBody] CreateOrderDto dto)
+    public async Task<IActionResult> Create(
+        [FromQuery] long telegramId,
+        [FromBody]CreateOrderDto dto)
     {
-        var result = await orderService.CreateOrderAsync(dto);
+        var result = await orderService.CreateOrderAsync(telegramId ,dto);
         return Ok(result);
     }
 

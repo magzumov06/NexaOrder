@@ -4,7 +4,7 @@ namespace Infrastructure.Interfaces;
 
 public interface IOrderService
 {
-    Task<string> CreateOrderAsync(CreateOrderDto order);
+    Task<string> CreateOrderAsync(long telegramId,CreateOrderDto order);
     Task<string> UpdateOrderAsync(UpdateOrderDto order);
     Task<bool> DeleteOrderAsync(int id);
     Task<GetOrderDto?> GetOrderAsync(int id);

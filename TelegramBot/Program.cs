@@ -18,6 +18,7 @@ builder.Services.AddScoped<IUserService, UserService>();
 
 builder.Services.AddScoped<OrderHelperMethods>();
 builder.Services.AddScoped<ProductHelperMethods>();
+builder.Services.AddScoped<UserHelperMethods>();
 
 
 builder.Services.AddHttpClient();

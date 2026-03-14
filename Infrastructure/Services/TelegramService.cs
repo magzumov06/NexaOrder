@@ -87,10 +87,15 @@ public class TelegramService(
             case "waiting_delete_order":
                 await order.DeleteOrder(chatId, text);
                 break;
+            
             case "waiting_delete_user":
                 await user.DeleteUser(chatId, text);
                 break;
 
+            case "waiting_delete_product":
+               await product.DeleteProduct(chatId, text);
+                break;
+            
             case "waiting_get_order":
                 await order.GetOrder(chatId, text);
                 break;

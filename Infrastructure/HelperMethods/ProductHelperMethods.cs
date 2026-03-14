@@ -52,6 +52,14 @@ public class ProductHelperMethods(ITelegramBotClient bot,
         await bot.SendMessage(chatId, "✅ Product updated");
         TelegramService.UserState[chatId] = "main";
     }
+
+    public async Task DeleteProduct(long chatId, string text)
+    {
+        await httpClient.DeleteAsync(
+            $"https://kenny-sunnier-russel.ngrok-free.dev/api/products/{text}");
+        await bot.SendMessage(chatId, "Product deleted");
+        TelegramService.UserState[chatId] = "main";
+    }
     
     public async Task GetProduct(long chatId, string text)
     {

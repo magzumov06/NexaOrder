@@ -9,8 +9,13 @@ namespace Infrastructure.Services;
 
 public class OrderService(DataContext context) : IOrderService
 {
-    public async Task<string> CreateOrderAsync(CreateOrderDto orderDto)
+    public async Task<string> CreateOrderAsync(long telegramId ,CreateOrderDto orderDto)
     {
+
+        var user = await context.Users.FirstOrDefaultAsync(x => x.TelegramId == telegramId);
+
+        if (user == null)
+            return "User not found";
        
         var product = await context.Products
             .FirstOrDefaultAsync(x => x.Id == orderDto.ProductId);
@@ -30,6 +35,7 @@ public class OrderService(DataContext context) : IOrderService
 
         var order = new Order
         {
+            UserId = user.Id,
             Address = orderDto.Address,
             PaymentMethod = orderDto.PaymentMethod,
             Status = OrderStatus.Processing,

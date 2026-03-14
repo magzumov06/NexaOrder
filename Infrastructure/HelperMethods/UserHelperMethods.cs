@@ -10,6 +10,9 @@ namespace Infrastructure.HelperMethods;
 public class UserHelperMethods(ITelegramBotClient bot,
     HttpClient httpClient)
 {
+    
+    
+    
     public async Task DeleteUser(long chatId, string text)
     {
         await httpClient.DeleteAsync(

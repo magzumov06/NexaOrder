@@ -18,7 +18,7 @@ public class OrderHelperMethods(ITelegramBotClient bot,
         if (parts.Length != 2)
         {
             await bot.SendMessage(chatId,
-                "Format: ProductId Quantity\nExample: 1 2");
+                "Format: ProductId Quantity YourAddress\nExample: 1 2 address");
             return;
         }
 
@@ -29,17 +29,19 @@ public class OrderHelperMethods(ITelegramBotClient bot,
                 "❌ Invalid numbers");
             return;
         }
-
+        
+        var address = parts[2];
+        
         var dto = new CreateOrderDto
         {
             ProductId = productId,
             Quantity = quantity,
-            Address = "Telegram Order",
+            Address = address,
             PaymentMethod = PaymentMethod.Cash
         };
 
         var response = await httpClient.PostAsJsonAsync(
-            "https://kenny-sunnier-russel.ngrok-free.dev/api/orders",
+            $"https://kenny-sunnier-russel.ngrok-free.dev/api/orders?telegramId={chatId}",
             dto);
 
         var result = await response.Content.ReadAsStringAsync();
@@ -58,15 +60,40 @@ public class OrderHelperMethods(ITelegramBotClient bot,
 
         TelegramService.UserState[chatId] = "main";
     }
-    
+
     public async Task GetOrder(long chatId, string text)
     {
         var response = await httpClient.GetAsync(
             $"https://kenny-sunnier-russel.ngrok-free.dev/api/orders/{text}");
 
+        if (!response.IsSuccessStatusCode)
+        {
+            await bot.SendMessage(chatId, "Order Not Found");
+            TelegramService.UserState[chatId] = "main";
+            return;
+        }
+
         var json = await response.Content.ReadAsStringAsync();
 
-        await bot.SendMessage(chatId, json);
+        var order = JsonSerializer.Deserialize<Order>(json);
+
+        if (order == null)
+        {
+            await bot.SendMessage(chatId, "Order Not Found");
+            TelegramService.UserState[chatId] = "main";
+            return;
+        }
+
+        var message =
+            $"Order information:\n\n" +
+            $"Id: {order.Id}\n" +
+            $"Address: {order.Address}\n" +
+            $"Payment Method: {order.PaymentMethod}\n" +
+            $"Status: {order.Status}\n";
+
+
+
+    await bot.SendMessage(chatId, message);
 
         TelegramService.UserState[chatId] = "main";
     }
